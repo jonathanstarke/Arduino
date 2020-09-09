@@ -35,7 +35,7 @@ The input voltages are either 0 'GND' when there is a fault or 12 volt when no f
 
 New 19 February 2020
 1. Addition of a LoadShedding Pause period
-2. All alrm input to be monitors for the above period, and if still active, then the normal timing starts
+2. All alarm input to be monitored for the above period, and if still active, then the normal timing starts
 3. Addition of a Global Alarm output, that goes HIGH when any of the above outputs are triggered.
 
 */
@@ -43,7 +43,12 @@ New 19 February 2020
 unsigned long BuzzerPeriod = 2;                 // Period (Seconds) an Output is pulled LOW, for any Alarm Output
 unsigned long SleepAlarmPeriod = 5;             // Period (Minutes) between sounding an alarm again, if the reset has not been pushed
 int NumberOfSecondsInAMinute  = 60;              // Change this value for testing purposes, make it one, then there is one second in a minute etc.
-unsigned long LoadSheddingPause = 120;           // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
+
+// Changed 09 September 2020
+unsigned long LoadSheddingPause;                    // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
+
+unsigned long LongLoadSheddingPause = 120;           // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
+unsigned long ShortLoadSheddingPause = 5;           // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
 
 unsigned long LoadSheddingTimerAlarm1 = 0;     // Load Shedding Timer for Generator 
 unsigned long LoadSheddingTimerAlarm2 = 0;     // Load Shedding Timer for Generator
@@ -76,7 +81,7 @@ int Alarm2Triggered = 0;                       // Has Alarm it been Triggered - 
 int Alarm3Triggered = 0;                       // Has Alarm it been Triggered - may still be low!
 
 
-// Set a few thing up
+// Set a few things up
 void setup() {
   
   // Convert Seconds to MilliSeconds
@@ -124,8 +129,22 @@ void loop() {
   
   TimeNow = millis();
 
-    globalTest(Input1,LoadSheddingTimerAlarm1,Alarm1Triggered,Output1,AlarmTimer1);    
-    globalTest(Input2,LoadSheddingTimerAlarm2,Alarm2Triggered,Output2,AlarmTimer2);    
+    // Changed 09 September 2020 - Now dependant on weather Alarm 3 has already been triggered or not - just the 
+    // duration of the Loadshedding Pause is reduced 
+    // Alarm3 Triggered = 1 then use the LONG Load Shedding Pause
+    // Alarm3 NOT Triggered the use the SHORT Load Shedding Pause.
+    if(Alarm3Triggered == 1) {
+        LoadSheddingPause = LongLoadSheddingPause;
+        globalTest(Input1,LoadSheddingTimerAlarm1,Alarm1Triggered,Output1,AlarmTimer1);    
+        globalTest(Input2,LoadSheddingTimerAlarm2,Alarm2Triggered,Output2,AlarmTimer2);            
+    }
+    else {
+        LoadSheddingPause = ShortLoadSheddingPause;
+        globalTest(Input1,LoadSheddingTimerAlarm1,Alarm1Triggered,Output1,AlarmTimer1);    
+        globalTest(Input2,LoadSheddingTimerAlarm2,Alarm2Triggered,Output2,AlarmTimer2);            
+    }
+    // Input Alarm Trigger 3 Always beghaves with the Long Load Shedding Pause.
+    LoadSheddingPause = LongLoadSheddingPause;
     globalTest(Input3,LoadSheddingTimerAlarm3,Alarm3Triggered,Output3,AlarmTimer3); 
        
   // Check if has been pressed
