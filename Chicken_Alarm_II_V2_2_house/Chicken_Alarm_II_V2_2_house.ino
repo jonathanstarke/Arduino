@@ -1,7 +1,7 @@
 // Special Project for Kevin Pope
 // Jonathan Starke
 // jonathan@entry.co.za
-// Latest Change 07 September 2020
+// Latest Change 12 September 2020
 
 /*   Specification
 4 inputs
@@ -40,15 +40,15 @@ New 19 February 2020
 
 */
 
-unsigned long BuzzerPeriod = 2;                 // Period (Seconds) an Output is pulled LOW, for any Alarm Output
-unsigned long SleepAlarmPeriod = 5;             // Period (Minutes) between sounding an alarm again, if the reset has not been pushed
-int NumberOfSecondsInAMinute  = 60;              // Change this value for testing purposes, make it one, then there is one second in a minute etc.
+unsigned long BuzzerPeriod = 200;              // Period (Seconds) an Output is pulled LOW, for any Alarm Output
+unsigned long SleepAlarmPeriod = 5;            // Period (Minutes) between sounding an alarm again, if the reset has not been pushed
+int NumberOfSecondsInAMinute  = 60;            // Change this value for testing purposes, make it one, then there is one second in a minute etc.
 
 // Changed 09 September 2020
-unsigned long LoadSheddingPause;                    // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
+unsigned long LoadSheddingPause;               // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
 
-unsigned long LongLoadSheddingPause = 120;           // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
-unsigned long ShortLoadSheddingPause = 5;           // (Seconds) Extra Pause for Load Shedding to let the Generator Start (Seconds)
+unsigned long LongLoadSheddingPause = 30;      // (Seconds) Load Shedding period when Loadshedding PIN 3 is Pulled LOW
+unsigned long ShortLoadSheddingPause = 5;      // (Seconds) Load Shedding period when NO Loadshedding PIN 3 remains HIGH
 
 unsigned long LoadSheddingTimerAlarm1 = 0;     // Load Shedding Timer for Generator 
 unsigned long LoadSheddingTimerAlarm2 = 0;     // Load Shedding Timer for Generator
@@ -70,16 +70,15 @@ int Input3 = 7;                                 // Go Low to Trigger
 int Reset = 11;                                 // Go LOW to Trigger
 
 // Output Pins
-int Output1 = 8;                               // Go LOW to Trigger
-int Output2 = 9;                               // Go LOW to Trigger
+int Output1 = 8;                                // Go LOW to Trigger
+int Output2 = 9;                                // Go LOW to Trigger
 int Output3 = 10;                               // Go LOW to Trigger
 
-int GlobalOutput = 12;                         // Go HIGH to Trigger - Global Siren
+int GlobalOutput = 12;                          // Go HIGH to Trigger - Global Siren
 
-int Alarm1Triggered = 0;                       // Has Alarm it been Triggered - may still be low!
-int Alarm2Triggered = 0;                       // Has Alarm it been Triggered - may still be low!
-int Alarm3Triggered = 0;                       // Has Alarm it been Triggered - may still be low!
-
+int Alarm1Triggered = 0;                        // Has Alarm it been Triggered - may still be low!
+int Alarm2Triggered = 0;                        // Has Alarm it been Triggered - may still be low!
+int Alarm3Triggered = 0;                        // Has Alarm it been Triggered - may still be low!
 
 // Set a few things up
 void setup() {
@@ -97,15 +96,15 @@ void setup() {
   // delay(4000);
   
   // Setup the Input Pins
-  pinMode(Input1,INPUT);
+  pinMode(Input1,INPUT_PULLUP);
   digitalWrite(Input1,HIGH);
-  pinMode(Input2,INPUT);
+  pinMode(Input2,INPUT_PULLUP);
   digitalWrite(Input2,HIGH);
-  pinMode(Input3,INPUT);
+  pinMode(Input3,INPUT_PULLUP);
   digitalWrite(Input3,HIGH);
   
   // Setup the Reset Pin
-  pinMode(Reset,INPUT);
+  pinMode(Reset,INPUT_PULLUP);
   digitalWrite(Reset,HIGH);
   
   // Setup the Output Pins
@@ -133,7 +132,7 @@ void loop() {
     // duration of the Loadshedding Pause is reduced 
     // Alarm3 Triggered = 1 then use the LONG Load Shedding Pause
     // Alarm3 NOT Triggered the use the SHORT Load Shedding Pause.
-    if(Alarm3Triggered == 1) {
+    if(digitalRead(Input3) == LOW) {
         LoadSheddingPause = LongLoadSheddingPause;
         globalTest(Input1,LoadSheddingTimerAlarm1,Alarm1Triggered,Output1,AlarmTimer1);    
         globalTest(Input2,LoadSheddingTimerAlarm2,Alarm2Triggered,Output2,AlarmTimer2);            
@@ -143,11 +142,12 @@ void loop() {
         globalTest(Input1,LoadSheddingTimerAlarm1,Alarm1Triggered,Output1,AlarmTimer1);    
         globalTest(Input2,LoadSheddingTimerAlarm2,Alarm2Triggered,Output2,AlarmTimer2);            
     }
-    // Input Alarm Trigger 3 Always beghaves with the Long Load Shedding Pause.
+    
+    // Input Alarm Trigger 3 Always behaves with the Long Load Shedding Pause.
     LoadSheddingPause = LongLoadSheddingPause;
     globalTest(Input3,LoadSheddingTimerAlarm3,Alarm3Triggered,Output3,AlarmTimer3); 
        
-  // Check if has been pressed
+  // Check if Reset has been pressed
   if (digitalRead(Reset) == LOW) {
     
     // Reset all Timers
@@ -181,7 +181,7 @@ void loop() {
     digitalWrite(Reset,HIGH);
   }
   
-  DisplayData();                 // Comment this line out for no serial output
+   DisplayData();                 // Comment this line out for no serial output
   
 } // end of loop
 
@@ -208,7 +208,7 @@ void globalTest(int &Input, unsigned long &LoadSheddingTimerAlarm, int &AlarmTri
     
     // Start the Timer
     AlarmTimer = millis();     // Start the timer for this alarm
-    AlarmTriggered = 1;        // Set the Alrm Trigger Flag
+    AlarmTriggered = 1;        // Set the Alarm Trigger Flag
   }
   
   // Now to Sound the Alarm, if it was triggered, and it is less than 5 (BuzzerPeriod) Seconds ago
@@ -276,14 +276,14 @@ void DisplayData() {
     Serial.print("  Trigg: ");
     Serial.print(Alarm1Triggered);
 
-    Serial.print("Input 2: ");
+    Serial.print(" Input 2: ");
     Serial.print(digitalRead(Input2));    
     Serial.print("  LSE: ");
     Serial.print((TimeNow - LoadSheddingTimerAlarm2) / 1000);        
     Serial.print("  Trigg: ");
     Serial.print(Alarm2Triggered);
 
-    Serial.print("Input 3: ");
+    Serial.print(" Input 3: ");
     Serial.print(digitalRead(Input3));    
     Serial.print("  LSE: ");
     Serial.print((TimeNow - LoadSheddingTimerAlarm3) / 1000);        
